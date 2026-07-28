@@ -1,11 +1,10 @@
 Working in a command line environment is recommended for ease of use with git and dvc. If on Windows, WSL1 or 2 is recommended.
 
 # Environment Set up
-* **Option 1: Using pip and venv (Recommended)**
-    * Ensure you have Python 3.13 installed
-    * Create virtual environment: `python3.13 -m venv .venv`
-    * Activate environment: `source .venv/bin/activate` (On Windows: `.venv\Scripts\activate`)
-    * Install dependencies: `pip install -r requirements.txt`
+* **Option 1: Using uv (Recommended)**
+    * Install uv: `curl -LsSf https://astral.sh/uv/install.sh | sh` (or `pip install uv`)
+    * From the `starter/` directory, create the environment and install dependencies: `uv sync`
+    * Activate environment (optional — `uv run` works without activating): `source .venv/bin/activate` (On Windows: `.venv\Scripts\activate`)
 
 * **Option 2: Using conda**
     * Download and install conda if you don't have it already.
@@ -39,7 +38,7 @@ To use your new S3 bucket from the AWS CLI you will need to create an IAM user w
 
 * Setup GitHub Actions on your repository. You can use one of the pre-made GitHub Actions if at a minimum it runs pytest and flake8 on push and requires both to pass without error.
    * Make sure you set up the GitHub Action to use Python 3.13 (same version as development).
-   * Note: Add flake8 to requirements.txt if you want to use it for linting: `pip install flake8`
+   * Note: Add flake8 for linting: `uv add flake8`
 * Add your <a href="https://github.com/marketplace/actions/configure-aws-credentials-action-for-github-actions" target="_blank">AWS credentials to the Action</a>.
 * Set up <a href="https://github.com/iterative/setup-dvc" target="_blank">DVC in the action</a> and specify a command to `dvc pull`.
 
@@ -77,7 +76,7 @@ To use your new S3 bucket from the AWS CLI you will need to create an IAM user w
    * Enable automatic deployments that only deploy if your continuous integration passes.
    * Hint: think about how paths will differ in your local environment vs. on Heroku.
    * Hint: development in Python is fast! But how fast you can iterate slows down if you rely on your CI/CD to fail before fixing an issue. I like to run flake8 locally before I commit changes.
-   * Note: Install flake8 separately if needed: `pip install flake8`
+   * Note: Install flake8 separately if needed: `uv add flake8`
 * Set up DVC on Heroku using the instructions contained in the starter directory.
 * Set up access to AWS on Heroku, if using the CLI: `heroku config:set AWS_ACCESS_KEY_ID=xxx AWS_SECRET_ACCESS_KEY=yyy`
 * Write a script that uses the requests module to do one POST on your live API.
