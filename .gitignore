@@ -119,7 +119,7 @@ dmypy.json
 
 # Data files (but keep small sample data)
 *.csv
-!starter/data/census.csv  # Keep the census dataset
+!app/data/census.csv  # Keep the census dataset
 
 # Large data directories
 data/large/
@@ -128,6 +128,9 @@ data/processed/
 
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
+
+# Marimo notebooks json
+__marimo__/
 
 # MLflow
 mlruns/
