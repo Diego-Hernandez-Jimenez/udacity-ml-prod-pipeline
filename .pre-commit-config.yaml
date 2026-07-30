@@ -12,6 +12,8 @@ repos:
     hooks:
       - id: ruff-check
         args: [--fix]
+        exclude: ^app/notebooks/.*\.py$ # we can be more tolerant with marimo notebooks
       - id: ruff-format
+        exclude: ^app/notebooks/.*\.py$
 
 # reference: https://pydevtools.com/handbook/how-to/how-to-set-up-pre-commit-hooks-for-a-python-project/
