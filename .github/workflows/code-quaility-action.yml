@@ -7,6 +7,10 @@ on:
 jobs:
   run-flake8-and-pytest:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./app
 
     steps:
 
@@ -28,9 +32,9 @@ jobs:
         run: uv sync --locked --all-extras --dev
 
       - name: Run flake8 analysis
-        run: uv run flake8 app/src
+        run: uv run flake8 src
       
       - name: Run tests
-        run: uv run pytest app/tests
+        run: uv run pytest tests
 
   
