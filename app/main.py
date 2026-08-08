@@ -1,7 +1,12 @@
+from pathlib import Path
 from typing import Literal
 
+import joblib
+import numpy as np
+import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel, ConfigDict, Field
+from src.utils import load_config
 
 
 class InputData(BaseModel):
@@ -63,16 +68,50 @@ class OutputPrediction(BaseModel):
     salary: Literal["<=50K", ">50K"] = Field(description="Predicted annual income.")
 
 
+MODEL_DIR = Path(__file__).parent / "model"
+cfg = load_config()
+cat_features = cfg["data"]["categorical_features"]
+
+model = joblib.load(MODEL_DIR / "model.pkl")
+encoder = joblib.load(MODEL_DIR / "encoder.pkl")
+lb = joblib.load(MODEL_DIR / "lb.pkl")
+
 app = FastAPI()
 
 
-# GET on the root giving a welcome message.
 @app.get("/")
 async def root():
     return {"message": "Welcome to the salary predictions API!"}
 
 
-# POST that does model inference
 @app.post("/predict", response_model=OutputPrediction)
 async def predict(data: InputData) -> OutputPrediction:
-    return OutputPrediction(salary="<=50K")
+    record = pd.DataFrame(
+        [
+            {
+                "age": data.age,
+                "workclass": data.workclass,
+                "fnlgt": data.fnlgt,
+                "education": data.education,
+                "education-num": data.education_num,
+                "marital-status": data.marital_status,
+                "occupation": data.occupation,
+                "relationship": data.relationship,
+                "race": data.race,
+                "sex": data.sex,
+                "capital-gain": data.capital_gain,
+                "capital-loss": data.capital_loss,
+                "hours-per-week": data.hours_per_week,
+                "native-country": data.native_country,
+            }
+        ]
+    )
+
+    cat = record[cat_features]
+    num = record[[c for c in record.columns if c not in cat_features]].values
+    X = np.concatenate([num, encoder.transform(cat)], axis=1)
+
+    prediction = model.predict(X)
+    salary = lb.inverse_transform(prediction.reshape(-1, 1))[0]
+
+    return OutputPrediction(salary=salary)
