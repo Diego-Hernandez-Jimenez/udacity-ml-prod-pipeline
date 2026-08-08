@@ -35,7 +35,7 @@ def test_predict_negative_class():
     }
     response = client.post("predict", json=data)
     assert response.status_code == 200
-    assert response.json() == {"prediction": "<=50K"}
+    assert response.json() == {"salary": "<=50K"}
 
 
 def test_predict_positive_class():
@@ -57,4 +57,4 @@ def test_predict_positive_class():
     }
     response = client.post("predict", json=data)
     assert response.status_code == 200
-    assert response.json() == {"prediction": ">=50K"}
+    assert response.json() == {"salary": ">50K"}
