@@ -19,6 +19,7 @@ def _(mo):
 
     Author: Diego Hernández Jiménez
     """)
+    return
 
 
 @app.cell
@@ -39,11 +40,13 @@ def _(pd):
 @app.cell
 def _(df):
     df.info()
+    return
 
 
 @app.cell
 def _(df):
     df.columns
+    return
 
 
 @app.cell(hide_code=True)
@@ -51,6 +54,7 @@ def _(mo):
     mo.md(r"""
     ### Remove extra spaces
     """)
+    return
 
 
 @app.cell
@@ -80,11 +84,18 @@ def _(df, str_cols):
 def _(categorical_unique_values, df, np, str_cols):
     df[str_cols] = df[str_cols].replace("?", np.nan)
     categorical_unique_values(df, str_cols)
+    return
 
 
 @app.cell
 def _(df):
     df.select_dtypes(int).describe()
+    return
+
+
+@app.cell
+def _():
+    return
 
 
 @app.cell(hide_code=True)
@@ -96,6 +107,7 @@ def _(mo):
     - Preprocess step: remove spaces from row values (categorical columns)
     - Preprocess step: consider "?" as null
     """)
+    return
 
 
 if __name__ == "__main__":
