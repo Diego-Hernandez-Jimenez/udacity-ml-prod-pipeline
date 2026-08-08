@@ -1,0 +1,40 @@
+paths:
+  raw_data: data/census.csv
+  cleaned_data: data/cleaned_census.csv
+  splits_dir: data/splits
+  model_dir: model
+
+filenames:
+  train: train.csv
+  test: test.csv
+  model: model.pkl
+  encoder: encoder.pkl
+  lb: lb.pkl
+  X_train: X_train.npy
+  y_train: y_train.npy
+  X_test: X_test.npy
+  y_test: y_test.npy
+
+data:
+  label: salary
+  categorical_features:
+    - workclass
+    - education
+    - marital-status
+    - occupation
+    - relationship
+    - race
+    - sex
+    - native-country
+
+split:
+  test_size: 0.2
+  random_state: 13
+
+models:
+  active: random_forest
+  random_forest:
+    n_estimators: 100
+    max_depth: null
+    random_state: 13
+    n_jobs: -1
