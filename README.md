@@ -165,6 +165,25 @@ Example request body for `POST /predict`:
 
 ---
 
+## Testing the live API
+
+A convenience script is provided at the repo root to verify the deployed service:
+
+```bash
+python live_request.py
+```
+
+This sends a POST request to the Render deployment and prints the status code and prediction:
+
+```
+Status code : 200
+Prediction  : {'salary': '<=50K'}
+```
+
+The interactive API docs are available at `https://udacity-ml-prod-pipeline.onrender.com/docs`.
+
+---
+
 ## CI/CD
 
 GitHub Actions runs on every push to `master` (`.github/workflows/code-quaility-action.yml`):
