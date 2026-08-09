@@ -26,7 +26,8 @@ def compute_slice_metrics(
     lb,
     cfg: dict,
 ) -> pd.DataFrame:
-    """Return a DataFrame with precision/recall/f1 for each unique value of *feature*."""
+    """Return a DataFrame with precision/recall/f1
+    for each unique value of *feature*."""
     cat_features = cfg["data"]["categorical_features"]
     label = cfg["data"]["label"]
     rows = []

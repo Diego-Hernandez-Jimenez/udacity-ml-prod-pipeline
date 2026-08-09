@@ -1,0 +1,4 @@
+# aligned with Ruff to avoid conflicts with pre-commit hooks
+[flake8]
+max-line-length = 88
+extend-ignore = W391
