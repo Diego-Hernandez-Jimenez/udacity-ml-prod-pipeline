@@ -1,50 +1,176 @@
-Working in a command line environment is recommended for ease of use with git and dvc. If on Windows, WSL1 or 2 is recommended.
+# ML Production Pipeline — Census Income Classifier
 
-# Environment Set up
-* **Option 1: Using uv (Recommended)**
-    * Install uv: `curl -LsSf https://astral.sh/uv/install.sh | sh` (or `pip install uv`)
-    * From the `starter/` directory, create the environment and install dependencies: `uv sync`
-    * Activate environment (optional — `uv run` works without activating): `source starter/.venv/bin/activate` (On Windows: `starter\.venv\Scripts\activate`)
+A production-ready ML pipeline that predicts whether an individual's annual income exceeds $50K based on U.S. Census data. The project covers data versioning with DVC, model training, a FastAPI inference service, and CI/CD via GitHub Actions for deployment on Render.
 
-* **Option 2: Using conda**
-    * Download and install conda if you don't have it already.
-    * conda create -n [envname] "python=3.13" scikit-learn pandas numpy pytest jupyter jupyterlab fastapi uvicorn pydantic httpx matplotlib seaborn -c conda-forge
-    * Install git either through conda ("conda install git") or through your CLI, e.g. sudo apt-get git.
+---
 
-## Repositories
-* Create a directory for the project and initialize git.
-    * As you work on the code, continually commit changes. Trained models you want to use in production must be committed to GitHub.
-* Connect your local git repo to GitHub.
-* Setup GitHub Actions on your repo. You can use one of the pre-made GitHub Actions if at a minimum it runs pytest and flake8 on push and requires both to pass without error.
-    * Make sure you set up the GitHub Action to use Python 3.13 (same version as development).
-    * Note: Add flake8 for linting: `uv add flake8` (run from `starter/`)
+## Project structure
 
-# Data
-* Download census.csv and commit it to dvc.
-* This data is messy, try to open it in pandas and see what you get.
-* To clean it, use your favorite text editor to remove all spaces.
+```
+udacity-ml-prod-pipeline/
+├── dvc.yaml                    # 4-stage DVC pipeline
+├── .github/workflows/          # CI: flake8 + pytest on push to master
+└── app/
+    ├── main.py                 # FastAPI app (GET / and POST /predict)
+    ├── ml_config.yaml          # Central config: paths, features, hyperparams
+    ├── pyproject.toml          # Dependencies (managed with uv)
+    ├── model_card_template.md  # Filled-in model card
+    ├── data/
+    │   ├── census.csv          # Raw UCI Adult dataset
+    │   ├── cleaned_census.csv  # After preprocessing
+    │   └── splits/             # train.csv / test.csv
+    ├── model/                  # Artifacts: model.pkl, encoder.pkl, lb.pkl
+    ├── src/
+    │   ├── preprocess_data.py  # Stage 1: drop missing values
+    │   ├── split_data.py       # Stage 2: stratified 80/20 split
+    │   ├── encode_data.py      # Stage 3: OHE + LabelBinarizer
+    │   ├── train_model.py      # Stage 4: fit RandomForestClassifier
+    │   ├── slice_metrics.py    # Per-slice performance report
+    │   └── utils.py            # load_config() helper
+    └── tests/
+        ├── test_api.py         # 3 API tests (GET + 2x POST)
+        └── test_ml.py          # 7 ML unit tests
+```
 
-# Model
-* Using the starter code, write a machine learning model that trains on the clean data and saves the model. Complete any function that has been started.
-* Write unit tests for at least 3 functions in the model code.
-* Write a function that outputs the performance of the model on slices of the data.
-    * Suggestion: for simplicity, the function can just output the performance on slices of just the categorical features.
-* Write a model card using the provided template.
+---
 
-# API Creation
-*  Create a RESTful API using FastAPI this must implement:
-    * GET on the root giving a welcome message.
-    * POST that does model inference.
-    * Type hinting must be used.
-    * Use a Pydantic model to ingest the body from POST. This model should contain an example.
-   	 * Hint: the data has names with hyphens and Python does not allow those as variable names. Do not modify the column names in the csv and instead use the functionality of FastAPI/Pydantic/etc to deal with this.
-* Write 3 unit tests to test the API (one for the GET and two for POST, one that tests each prediction).
+## Environment setup
 
-# API Deployment
-* Create a free Heroku account (for the next steps you can either use the web GUI or download the Heroku CLI).
-* Create a new app and have it deployed from your GitHub repository.
-    * Enable automatic deployments that only deploy if your continuous integration passes.
-    * Hint: think about how paths will differ in your local environment vs. on Heroku.
-    * Hint: development in Python is fast! But how fast you can iterate slows down if you rely on your CI/CD to fail before fixing an issue. I like to run flake8 locally before I commit changes.
-    * Note: Install flake8 separately if needed: `uv add flake8` (run from `starter/`)
-* Write a script that uses the requests module to do one POST on your live API.
+Requires Python 3.13. [uv](https://github.com/astral-sh/uv) is recommended.
+
+```bash
+# Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install all dependencies (from app/)
+cd app
+uv sync
+```
+
+All commands below that run Python should be executed from the `app/` directory.
+
+---
+
+## Reproducing the training pipeline
+
+The pipeline is defined in `dvc.yaml` and has four sequential stages:
+
+| Stage | Script | Input | Output |
+|---|---|---|---|
+| `preprocess` | `src/preprocess_data.py` | `data/census.csv` | `data/cleaned_census.csv` |
+| `split` | `src/split_data.py` | `data/cleaned_census.csv` | `data/splits/` |
+| `encode` | `src/encode_data.py` | `data/splits/` | `model/encoder.pkl`, `model/lb.pkl` |
+| `train` | `src/train_model.py` | `data/splits/`, encoder artifacts | `model/model.pkl` |
+
+To run the full pipeline (only re-runs stages with changed dependencies):
+
+```bash
+# From the repo root
+dvc repro
+```
+
+To force a full re-run from scratch:
+
+```bash
+dvc repro --force
+```
+
+To run a single stage in isolation (from `app/`):
+
+```bash
+uv run python src/preprocess_data.py
+uv run python src/split_data.py
+uv run python src/encode_data.py
+uv run python src/train_model.py
+```
+
+Hyperparameters and file paths are centralized in `app/ml_config.yaml`. Edit that file to change the model, split ratio, or directory layout.
+
+---
+
+## Running tests
+
+All tests run from `app/` with pytest:
+
+```bash
+# Run all tests
+uv run pytest tests -v
+
+# Run only ML unit tests
+uv run pytest tests/test_ml.py -v
+
+# Run only API tests
+uv run pytest tests/test_api.py -v
+```
+
+**ML unit tests** (`tests/test_ml.py`) — 7 tests covering `preprocess`, `encode`, and `train`. All functions are tested with mocked config so no artifacts need to be present on disk.
+
+**API tests** (`tests/test_api.py`) — 3 tests using FastAPI's `TestClient`: one for `GET /` and one for each prediction class on `POST /predict`. These tests require the trained model artifacts (`model/*.pkl`) to be present.
+
+### Linting
+
+```bash
+uv run flake8 src
+```
+
+---
+
+## Slice performance report
+
+To evaluate model performance broken down by each categorical feature:
+
+```bash
+# From app/
+uv run python src/slice_metrics.py
+```
+
+This prints a report to stdout and writes it to `app/slice_output.txt`. Requires trained artifacts in `model/`.
+
+---
+
+## Running the API locally
+
+```bash
+# From app/
+uv run uvicorn main:app --reload
+```
+
+The API will be available at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs`.
+
+**Endpoints:**
+
+- `GET /` — returns a welcome message
+- `POST /predict` — accepts a Census record and returns `{"salary": "<=50K"}` or `{"salary": ">50K"}`
+
+Example request body for `POST /predict`:
+
+```json
+{
+    "age": 39,
+    "workclass": "State-gov",
+    "fnlgt": 77516,
+    "education": "Bachelors",
+    "education-num": 13,
+    "marital-status": "Never-married",
+    "occupation": "Adm-clerical",
+    "relationship": "Not-in-family",
+    "race": "White",
+    "sex": "Male",
+    "capital-gain": 2174,
+    "capital-loss": 0,
+    "hours-per-week": 40,
+    "native-country": "United-States"
+}
+```
+
+---
+
+## CI/CD
+
+GitHub Actions runs on every push to `master` (`.github/workflows/code-quaility-action.yml`):
+
+1. Sets up Python 3.13 and installs dependencies with `uv sync`
+2. Runs `flake8 src` for linting
+3. Runs `pytest tests` for all unit and API tests
+
+The app is deployed on [Render](https://render.com) with automatic deploys triggered when the CI pipeline passes on `master`.

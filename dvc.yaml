@@ -1,0 +1,74 @@
+stages:
+  preprocess:
+    wdir: app
+    cmd: python src/preprocess_data.py
+    deps:
+      - data/census.csv
+      - src/preprocess_data.py
+    params:
+      - ml_config.yaml:
+          - paths.raw_data
+          - paths.cleaned_data
+    outs:
+      - data/cleaned_census.csv
+
+  split:
+    wdir: app
+    cmd: python src/split_data.py
+    deps:
+      - data/cleaned_census.csv
+      - src/split_data.py
+    params:
+      - ml_config.yaml:
+          - paths.cleaned_data
+          - paths.splits_dir
+          - split
+          - filenames.train
+          - filenames.test
+    outs:
+      - data/splits
+
+  encode:
+    wdir: app
+    cmd: python src/encode_data.py
+    deps:
+      - data/splits
+      - src/encode_data.py
+    params:
+      - ml_config.yaml:
+          - paths.splits_dir
+          - paths.model_dir
+          - data.categorical_features
+          - data.label
+          - filenames.train
+          - filenames.test
+          - filenames.encoder
+          - filenames.lb
+    outs:
+      - model/encoder.pkl:
+          cache: false
+      - model/lb.pkl:
+          cache: false
+
+  train:
+    wdir: app
+    cmd: python src/train_model.py
+    deps:
+      - data/splits
+      - model/encoder.pkl
+      - model/lb.pkl
+      - src/train_model.py
+      - src/encode_data.py
+    params:
+      - ml_config.yaml:
+          - paths.splits_dir
+          - paths.model_dir
+          - models
+          - filenames.train
+          - filenames.test
+          - filenames.encoder
+          - filenames.lb
+          - filenames.model
+    outs:
+      - model/model.pkl:
+          cache: false

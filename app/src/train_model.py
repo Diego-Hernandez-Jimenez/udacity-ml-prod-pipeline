@@ -1,28 +1,56 @@
-# Script to train machine learning model.
+"""
+Training stage: fit the active model from ml_config.yaml on encoded training data.
 
-from sklearn.model_selection import train_test_split
-from ml.data import process_data
-from ml.model import train_model
+Author: Diego Hernández Jiménez
+"""
 
-# Add code to load in the data.
+import os
 
-# Optional enhancement, use K-fold cross validation instead of a train-test split.
-train, test = train_test_split(data, test_size=0.20)
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from utils import load_config
 
-cat_features = [
-    "workclass",
-    "education",
-    "marital-status",
-    "occupation",
-    "relationship",
-    "race",
-    "sex",
-    "native-country",
-]
-X_train, y_train, encoder, lb = process_data(
-    train, categorical_features=cat_features, label="salary", training=True
-)
 
-# Proces the test data with the process_data function.
+def _build_model(cfg: dict) -> RandomForestClassifier:
+    active = cfg["models"]["active"]
+    hyperparams = cfg["models"][active]
+    if active == "random_forest":
+        return RandomForestClassifier(**hyperparams)
+    raise ValueError(f"Unknown model: {active}")
 
-# Train and save a model.
+
+def train(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    save: bool = False,
+) -> RandomForestClassifier:
+    cfg = load_config()
+    model = _build_model(cfg)
+    model.fit(X_train, y_train)
+
+    if save:
+        model_dir = cfg["paths"]["model_dir"]
+        os.makedirs(model_dir, exist_ok=True)
+        joblib.dump(model, os.path.join(model_dir, cfg["filenames"]["model"]))
+
+    return model
+
+
+if __name__ == "__main__":
+    from encode_data import encode
+
+    cfg = load_config()
+    splits_dir = cfg["paths"]["splits_dir"]
+    model_dir = cfg["paths"]["model_dir"]
+    fn = cfg["filenames"]
+
+    train_df = pd.read_csv(os.path.join(splits_dir, fn["train"]))
+    test_df = pd.read_csv(os.path.join(splits_dir, fn["test"]))
+    encoder = joblib.load(os.path.join(model_dir, fn["encoder"]))
+    lb = joblib.load(os.path.join(model_dir, fn["lb"]))
+
+    X_train, y_train, *_ = encode(train_df, test_df, encoder=encoder, lb=lb)
+
+    train(X_train=X_train, y_train=y_train, save=True)

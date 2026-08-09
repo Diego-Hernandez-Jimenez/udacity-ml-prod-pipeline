@@ -110,7 +110,7 @@ dmypy.json
 
 # Machine Learning / Data Science specific
 # Models
-*.pkl
+# *.pkl
 *.joblib
 *.h5
 *.hdf5
@@ -118,8 +118,10 @@ dmypy.json
 *.weights
 
 # Data files (but keep small sample data)
+splits/
 *.csv
-!starter/data/census.csv  # Keep the census dataset
+# Keep the census dataset
+!app/data/census.csv
 
 # Large data directories
 data/large/
@@ -128,6 +130,9 @@ data/processed/
 
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
+
+# Marimo notebooks json
+__marimo__/
 
 # MLflow
 mlruns/
